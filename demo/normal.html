@@ -3,60 +3,24 @@
 <head></head>
 
 <body>
-    <button onclick="playAudio()">Play</button>
+    <button onclick="wave.play()">Play</button>
     <button onclick="ripple()">Ripple</button>
     <div id="chart-container" style="width: 100%; height: 100%;"></div>
-    <script src="../dist/circular-audio-wave.min.js"></script>
+    <!-- <script src="../dist/circular-audio-wave.min.js"></script> -->
+
+    <!-- remove these later -->
+    <script src="../lib/echarts_3.8.5.js"></script>
+    <script src="../src/js/circular-audio-wave.js"></script>
+
+
+
     <script>
 
-        // check if the default naming is enabled, if not use the chrome one.
-        if (!window.AudioContext) {
-            if (!window.webkitAudioContext) {
-                alert('no audiocontext found');
-            }
-            window.AudioContext = window.webkitAudioContext;
-        }
-        var context = new AudioContext();
-        var audioBuffer;
-        var sourceNode;
+        
+        //let wave = new CircularAudioWave(document.getElementById('chart-container'), {loop: true});
+        let wave = new CircularAudioWave(document.getElementById('chart-container'));
+        wave.loadAudio('audio/audio1.mp3');
 
-        let playing = false;
-        let maxChartValue = 200;
-        let minChartValue = 60;
-        // setup a analyzer
-        var analyser;
-
-        // setup a javascript node
-        var javascriptNode;
-
-        let waveData = [];
-        let labelData = [];
-        let option;
-
-        // load the sound
-        setupAudioNodes();
-        //loadSound("audio/new-loops-impact-fx-1.wav");
-
-        loadSound("audio/audio1.mp3");
-        // when the javascript node is called
-        // we use information from the analyzer node
-        // to draw the volume
-        javascriptNode.onaudioprocess = function () {
-
-            // get the average for the first channel
-            var array = new Uint8Array(analyser.frequencyBinCount);
-            analyser.getByteFrequencyData(array);
-
-            // // clear the current state
-            // ctx.clearRect(0, 0, 1000, 325);
-
-            // // set the fill style
-            // ctx.fillStyle=gradient;
-            drawSpectrum(array);
-
-        }
-
-        let tick = 0;
         let lastMaxR = 0;
         function drawSpectrum(array) {
             // for ( var i = 0; i < (array.length); i++ ){
@@ -79,65 +43,11 @@
                     return [lastMaxR, i];
                 });
                 chart.setOption(option);
-                tick++;
             }
 
 
 
         };
-
-        function setupAudioNodes() {
-            // setup a javascript node
-            javascriptNode = context.createScriptProcessor(2048, 1, 1);
-            // connect to destination, else it isn't called
-            javascriptNode.connect(context.destination);
-
-            // setup a analyzer
-            analyser = context.createAnalyser();
-            analyser.smoothingTimeConstant = 0.3;
-            analyser.fftSize = 2048; // 512
-
-            // create a buffer source node
-            sourceNode = context.createBufferSource();
-
-            // connect the source to the analyser
-            sourceNode.connect(analyser);
-
-            // we use the javascript node to draw at a specific interval.
-            analyser.connect(javascriptNode);
-
-            // and connect to destination, if you want audio
-            sourceNode.connect(context.destination);
-            sourceNode.onended = function () {
-                context.close();
-                option.series[2].data = option.series[0].data;
-                chart.setOption(option);
-            }
-        }
-
-        // load the specified sound
-        function loadSound(url) {
-            var request = new XMLHttpRequest();
-            request.open('GET', url, true);
-            request.responseType = 'arraybuffer';
-
-            // When loaded decode the data
-            request.onload = function () {
-
-                // decode the data
-                context.decodeAudioData(request.response, function (buffer) {
-                    // when the audio is decoded play the sound
-                    sourceNode.buffer = buffer;
-                }, onError);
-            }
-            request.send();
-        }
-
-
-        function playAudio() {
-            playing = true;
-            sourceNode.start(0);
-        }
 
         let rippleLevel = 0;
         function ripple() {
@@ -173,30 +83,6 @@
             chart.setOption(option);
         }
 
-        // log if an error occurs
-        function onError(e) {
-            console.log(e);
-        }
-
-        for (let i = 0; i < 24; i++) {
-            waveData.push({
-                value: Math.random() * 50 + 10 - Math.abs(i - 12),
-                name: i + ':00'
-            });
-            labelData.push({
-                value: 1,
-                name: i + ':00'
-            });
-        }
-
-        const generateRandomWaveData = () => {
-            let waveData = [];
-            for (var i = 0; i <= 360; i++) {
-                var r = Math.floor(Math.random() * (maxChartValue - minChartValue + 1)) + minChartValue;
-                waveData.push([r, i]);
-            }
-            return waveData;
-        };
 
         const generateWaveData = (data) => {
             let waveData = [];
@@ -216,102 +102,6 @@
         };
 
 
-        option = {
-            color: ['#22C3AA'],
-            angleAxis: {
-                type: 'value',
-                //startAngle: 0,
-                clockwise: false,
-                axisLine: {
-                    show: false,
-                },
-                axisTick: {
-                    show: false,
-                },
-                axisLabel: {
-                    show: false,
-                },
-                splitLine: {
-                    show: false,
-                },
-            },
-            radiusAxis: {
-                min: 0,
-                max: maxChartValue + 50,
-                axisLine: {
-                    show: false,
-                },
-                axisTick: {
-                    show: false,
-                },
-                axisLabel: {
-                    show: false,
-                },
-                splitLine: {
-                    show: false,
-                },
-            },
-            tooltip: {
-                trigger: 'axis',
-                axisPointer: {
-                    type: 'cross'
-                }
-            },
-            polar: {
-                radius: '100%',
-            },
-            series: [
-                {
-                    coordinateSystem: 'polar',
-                    name: 'line',
-                    type: 'line',
-                    showSymbol: false,
-                    data: Array.apply(null, { length: 361 }).map(Function.call, function (i) {
-                        return [minChartValue, i];
-                    })
-                },
-                {
-                    coordinateSystem: 'polar',
-                    name: 'ripple',
-                    type: 'line',
-                    showSymbol: false,
-                    data: []
-                },
-                {
-                    coordinateSystem: 'polar',
-                    name: 'ripple',
-                    type: 'line',
-                    showSymbol: false,
-                    data: []
-                }
-                // {
-                //     type: 'pie',
-                //     data: labelData,
-                //     radius: [100, 180],
-                //     zlevel: -2,
-                //     itemStyle: {
-                //         normal: {
-                //             color: '#22C3AA',
-                //             borderColor: 'white'
-                //         }
-                //     },
-                //     label: {
-                //         normal: {
-                //             position: 'inside'
-                //         }
-                //     }
-                // },
-            ]
-        };
-
-
-
-        var chart = echarts.init(document.getElementById('chart-container'));
-        chart.setOption(option);
-        // setInterval(() => {
-        //     option.series[1].data = generateWaveData();
-        //     chart.setOption(option);
-        // }, 100);
     </script>
 </body>
 
