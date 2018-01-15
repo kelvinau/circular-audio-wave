@@ -12,42 +12,10 @@
     <script src="../lib/echarts_3.8.5.js"></script>
     <script src="../src/js/circular-audio-wave.js"></script>
 
-
-
     <script>
-
-        
         //let wave = new CircularAudioWave(document.getElementById('chart-container'), {loop: true});
         let wave = new CircularAudioWave(document.getElementById('chart-container'));
         wave.loadAudio('audio/audio1.mp3');
-
-        let lastMaxR = 0;
-        function drawSpectrum(array) {
-            // for ( var i = 0; i < (array.length); i++ ){
-            //     var value = array[i];
-            //     ctx.fillRect(i*5,325-value,3,325);
-            // }
-            //console.log(array);
-            if (playing) {
-                let waveData = generateWaveData(array);
-                option.series[0].data = waveData.data;
-                //console.log(waveData.maxR);
-                if (waveData.maxR > lastMaxR) {
-                    lastMaxR = waveData.maxR;
-                }
-                else {
-                    lastMaxR -= 4;
-                }
-
-                option.series[2].data = Array.apply(null, { length: 361 }).map(Function.call, function (i) {
-                    return [lastMaxR, i];
-                });
-                chart.setOption(option);
-            }
-
-
-
-        };
 
         let rippleLevel = 0;
         function ripple() {
@@ -82,24 +50,6 @@
 
             chart.setOption(option);
         }
-
-
-        const generateWaveData = (data) => {
-            let waveData = [];
-            let maxR = 0;
-            for (let i = 0; i <= 360; i++) {
-                // max: 160, min: 60
-                // (((OldValue - OldMin) * (NewMax - NewMin)) / (OldMax - OldMin)) + NewMin
-                let freq = data[i];
-                var r = (((freq - 0) * (maxChartValue - minChartValue)) / (255 - 0)) + minChartValue;
-                if (r > maxR) {
-                    maxR = r;
-                }
-                waveData.push([r, i]);
-            }
-            waveData.push([waveData[0][0], 360]);
-            return { maxR: maxR, data: waveData };
-        };
 
 
     </script>

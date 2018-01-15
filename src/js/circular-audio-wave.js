@@ -1,16 +1,5 @@
 class CircularAudioWave {
     constructor(elem, opts={}) {
-        // check if the default naming is enabled, if not use the chrome one.
-        if (!window.AudioContext) {
-            if (!window.webkitAudioContext) {
-                alert('Your browser does not support AudioContext');
-            }
-            window.AudioContext = window.webkitAudioContext;
-        }
-        else {
-            this.context = new AudioContext();
-            this.sourceNode = this.context.createBufferSource();
-        }
         this.elem = elem;
         this.opts = opts;
         this.lastMaxR = 0;
@@ -18,8 +7,9 @@ class CircularAudioWave {
         this.minChartValue = 60;
         this.chart = echarts.init(this.elem);
         this.playing = false;
+        this.lineColorOffset = 0;
+        this.tick = 0;
         this.defaultChartOption = {
-            color: ['#22C3AA'],
             angleAxis: {
                 type: 'value',
                 clockwise: false,
@@ -52,12 +42,12 @@ class CircularAudioWave {
                     show: false,
                 },
             },
-            tooltip: {
-                trigger: 'axis',
-                axisPointer: {
-                    type: 'cross'
-                }
-            },
+            // tooltip: {
+            //     trigger: 'axis',
+            //     axisPointer: {
+            //         type: 'cross'
+            //     }
+            // },
             polar: {
                 radius: '100%',
             },
@@ -67,6 +57,17 @@ class CircularAudioWave {
                     name: 'line',
                     type: 'line',
                     showSymbol: false,
+                    lineStyle: {
+                        normal: {
+                            color: {
+                                colorStops: [
+                                    { offset: 0.7, color: 'red' },
+                                    { offset: 0.3, color: 'blue'}
+                                ],
+                            },
+                        },
+                    },
+                    zlevel: 2,
                     data: Array.apply(null, { length: 361 }).map(Function.call, i => {
                         return [this.minChartValue, i];
                     })
@@ -83,10 +84,15 @@ class CircularAudioWave {
                     name: 'maxbar',
                     type: 'line',
                     showSymbol: false,
+                    lineStyle: {
+                        normal: {
+                            color: 'purple',
+                        },
+                    },
                     data: Array.apply(null, { length: 361 }).map(Function.call, i => {
                         return [this.minChartValue, i];
                     })
-                }
+                },
                 // {
                 //     type: 'pie',
                 //     data: labelData,
@@ -107,15 +113,29 @@ class CircularAudioWave {
             ]
         };
         this.chartOption = JSON.parse(JSON.stringify(this.defaultChartOption));
+        // check if the default naming is enabled, if not use the chrome one.
+        if (!window.AudioContext) {
+            if (!window.webkitAudioContext) {
+                alert('Your browser does not support AudioContext');
+            }
+            window.AudioContext = window.webkitAudioContext;
+        }
+        else {
+            this.context = new AudioContext();
+            this.sourceNode = this.context.createBufferSource();
+            this.sourceNode.loop = !!this.opts.loop;
+            this.analyser = this.context.createAnalyser();
+        }
     }
     loadAudio(filePath) {
+        console.log(filePath);
+        this.filePath = filePath;
+        this._setupAudioNodes();
+        var request = new XMLHttpRequest();
+        request.open('GET', filePath, true);
+        request.responseType = 'arraybuffer';
+        request.send();
         return new Promise((resolve, reject) => {
-            this.filePath = filePath;
-            this._setupAudioNodes();
-            console.log(filePath);
-            var request = new XMLHttpRequest();
-            request.open('GET', filePath, true);
-            request.responseType = 'arraybuffer';
             request.onload = () => {
                 this.context.decodeAudioData(
                     request.response, 
@@ -127,7 +147,6 @@ class CircularAudioWave {
                     e => console.log(e)
                 );
             };
-            request.send();
         });
     }
     generateWave() {
@@ -137,6 +156,7 @@ class CircularAudioWave {
         if (this.sourceNode && this.sourceNode.buffer) {
             this.playing = true;
             this.sourceNode.start(0);
+            this._drawAnaimation();
         }
         else {
             alert('Audio is not ready');
@@ -155,38 +175,32 @@ class CircularAudioWave {
     }
     // TODO: Allow callback
     onended() {
-        this.playing = false;
-        this.context.close();
-        this.sourceNode.buffer = null;
-        this.reset();
+        if (!this.opts.loop) {
+            this.playing = false;
+            this.context.close();
+            this.sourceNode.buffer = null;
+            this.reset();
 
-        this.context = new AudioContext();
-        this.sourceNode = this.context.createBufferSource();
-        this.loadAudio(this.filePath)
-        .then(() => {
-            this.opts.loop && this.play();
-        });
+            this.context = new AudioContext();
+            this.sourceNode = this.context.createBufferSource();
+            this.analyser = this.context.createAnalyser();
+            this.loadAudio(this.filePath)
+        }
     }
     _setupAudioNodes() {
-        let javascriptNode = this.context.createScriptProcessor(2048, 1, 1);
-        javascriptNode.connect(this.context.destination);
+        this.analyser.smoothingTimeConstant = 0.3;
+        this.analyser.fftSize = 2048;
 
-        let analyser = this.context.createAnalyser();
-        analyser.smoothingTimeConstant = 0.3;
-        analyser.fftSize = 2048;
-
-        this.sourceNode.connect(analyser);
-
-        analyser.connect(javascriptNode);
+        this.sourceNode.connect(this.analyser);
 
         this.sourceNode.connect(this.context.destination);
         this.sourceNode.onended = this.onended.bind(this);
-        
-        javascriptNode.onaudioprocess = () => {
-            var freqData = new Uint8Array(analyser.frequencyBinCount);
-            analyser.getByteFrequencyData(freqData);
-            this._draw(freqData);
-        }
+    }
+    _drawAnaimation() {
+        let freqData = new Uint8Array(this.analyser.frequencyBinCount);
+        this.analyser.getByteFrequencyData(freqData);
+        this._draw(freqData);
+        requestAnimationFrame(this._drawAnaimation.bind(this));
     }
     _draw(freqData) {
         if (this.playing) {
