@@ -2,12 +2,14 @@ class CircularAudioWave {
     constructor(elem, opts={}) {
         this.opts = opts;
         this.lastMaxR = 0;
-        this.maxChartValue = 200;
-        this.minChartValue = 60;
+        this.maxChartValue = 240;
+        this.minChartValue = 100;
         this.chart = echarts.init(elem);
         this.playing = false;
         this.lineColorOffset = 0;
         this.tick = 0;
+
+        let bgColor = '#2E2733';
         this.defaultChartOption = {
             angleAxis: {
                 type: 'value',
@@ -53,19 +55,19 @@ class CircularAudioWave {
                     lineStyle: {
                         color: {
                             colorStops: [
-                                { offset: 0.7, color: 'red' },
-                                { offset: 0.3, color: 'blue'}
+                                { offset: 0.7, color: '#e91e63' },
+                                { offset: 0.3, color: '#3f51b5'}
                             ],
                         },
-                        // shadowColor: 'black',
-                        // shadowBlur: 30,
+                        shadowColor: 'blue',
+                        shadowBlur: 10,
                     },
                     zlevel: 2,
                     data: Array.apply(null, { length: 361 }).map(Function.call, i => {
                         return [this.minChartValue, i];
                     }),
                     silent: true,
-                    animation: false,
+                    hoverAnimation: false,
                 },
                 {
                     coordinateSystem: 'polar',
@@ -74,14 +76,56 @@ class CircularAudioWave {
                     showSymbol: false,
                     lineStyle: {
                         color: 'green',
-                        // shadowColor: 'black',
-                        // shadowBlur: 20,
+                        shadowColor: 'green',
+                        shadowBlur: 10,
                     },
                     data: Array.apply(null, { length: 361 }).map(Function.call, i => {
                         return [this.minChartValue, i];
                     }),
                     silent: true,
-                    animation: false,
+                    hoverAnimation: false,
+                },
+                // {
+                //     coordinateSystem: 'polar',
+                //     name: 'interior',
+                //     type: 'line',
+                //     showSymbol: false,
+                //     lineStyle: {
+                //         color: '#4CAF50',
+                //         width: 10,
+                //         shadowColor: 'green',
+                //         shadowBlur: 10,
+                //     },
+                //     data: Array.apply(null, { length: 361 }).map(Function.call, i => {
+                //         return [this.minChartValue - 5, i];
+                //     }),
+                //     silent: true,
+                //     hoverAnimation: false,
+                // },
+                {
+                    coordinateSystem: 'polar',
+                    name: 'interior',
+                    type: 'effectScatter',
+                    showSymbol: false,
+                    data: [0],
+                    symbolSize: 100,
+                    rippleEffect: {
+                        period: 20,
+                        scale: 2,
+                    },
+                    itemStyle: {
+                        color: {
+                            type: 'radial',
+                            colorStops: [{
+                                offset: 0, color: 'white'
+                            }, {
+                                offset: 1, color: '#87b9ca'
+
+                            }],
+                        },
+                    },
+                    silent: true,
+                    hoverAnimation: false,
                 },
             ]
         };
@@ -102,7 +146,6 @@ class CircularAudioWave {
 
         if (this.opts.mode === 'sunburst') {
             let colors = ['#FFAE57', '#FF7853', '#EA5151', '#CC3F57', '#9A2555'];
-            let bgColor = '#2E2733';
             
             let data = [
                 {
@@ -201,35 +244,8 @@ class CircularAudioWave {
                 }]
             };
         }
-        
-
+    
         this.chartOption = JSON.parse(JSON.stringify(this.defaultChartOption));
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     }
     loadAudio(filePath) {
         console.log(filePath);
@@ -245,7 +261,7 @@ class CircularAudioWave {
                     request.response, 
                     buffer => {
                         this.sourceNode.buffer = buffer;
-                        this.generateWave();
+                        this._init();
                         resolve();
                     },
                     e => console.log(e)
@@ -253,14 +269,25 @@ class CircularAudioWave {
             };
         });
     }
-    generateWave() {
+    _init() {
         this.chart.setOption(this.chartOption, true);
+        this._debouncedDraw = this._debounce(this._drawAnaimation.bind(this), 25);
+    }
+    presetOption() {
+        if (this.opts.mode !== 'sunburst') {
+            this.chartOption.series[0].animation = false;
+        }
+    }
+    riplpe() {
+        //this.chart.
     }
     play() {
         if (this.sourceNode && this.sourceNode.buffer) {
             this.playing = true;
+            this.presetOption();
             this.sourceNode.start(0);
-            this._drawAnaimation();
+            //this._drawAnaimation();
+            this._debouncedDraw();
         }
         else {
             alert('Audio is not ready');
@@ -274,8 +301,9 @@ class CircularAudioWave {
         this.chart.dispose();
     }
     reset() {
+        this.tick = 0;
         this.chartOption = JSON.parse(JSON.stringify(this.defaultChartOption));
-        this.generateWave();
+        this._init();
     }
     // TODO: Allow callback
     onended() {
@@ -300,31 +328,40 @@ class CircularAudioWave {
         this.sourceNode.connect(this.context.destination);
         this.sourceNode.onended = this.onended.bind(this);
     }
-    _drawAnaimation() {
+    _drawAnaimation()  {
         let freqData = new Uint8Array(this.analyser.frequencyBinCount);
         this.analyser.getByteFrequencyData(freqData);
         this._draw(freqData);
-        requestAnimationFrame(this._drawAnaimation.bind(this));
+        requestAnimationFrame(this._debouncedDraw.bind(this));
     }
+
     _draw(freqData) {
         if (this.playing) {
             let waveData = this._generateWaveData(freqData);
             this.chartOption.series[0].data = waveData.data;
 
             if (waveData.maxR > this.lastMaxR) {
-                this.lastMaxR = waveData.maxR;
+                this.lastMaxR = waveData.maxR + 4;
+            }
+            else if (this.playing) {
+                this.lastMaxR -= 2;
             }
             else {
-                this.lastMaxR -= 4;
+                this.lastMaxR = this.minChartValue;
             }
 
-            // maxbar
             if (this.opts.mode !== 'sunburst') {
+                // maxbar
                 this.chartOption.series[1].data = Array.apply(null, { length: 361 }).map(Function.call, (i) => {
                     return [this.lastMaxR, i];
                 });
+                // if (this.tick === 50) {
+                //     this.chartOption.series[2].rippleEffect.period *= 2;
+                //     this.chartOption.series[2].rippleEffect.scale *= 2;
+                // }
             }
             this.chart.setOption(this.chartOption, true);
+            this.tick++;
         }
     }
     _generateWaveData(data) {
@@ -359,5 +396,20 @@ class CircularAudioWave {
             });
         }
         return { maxR: maxR, data: waveData };
+    };
+    
+    _debounce(func, wait, immediate) {
+        var timeout;
+        return function() {
+            var context = this, args = arguments;
+            var later = function() {
+                timeout = null;
+                if (!immediate) func.apply(context, args);
+            };
+            var callNow = immediate && !timeout;
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+            if (callNow) func.apply(context, args);
+        };
     };
 }
