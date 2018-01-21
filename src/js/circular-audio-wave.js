@@ -1,11 +1,10 @@
 class CircularAudioWave {
     constructor(elem, opts={}) {
-        this.elem = elem;
         this.opts = opts;
         this.lastMaxR = 0;
         this.maxChartValue = 200;
         this.minChartValue = 60;
-        this.chart = echarts.init(this.elem);
+        this.chart = echarts.init(elem);
         this.playing = false;
         this.lineColorOffset = 0;
         this.tick = 0;
@@ -42,12 +41,6 @@ class CircularAudioWave {
                     show: false,
                 },
             },
-            // tooltip: {
-            //     trigger: 'axis',
-            //     axisPointer: {
-            //         type: 'cross'
-            //     }
-            // },
             polar: {
                 radius: '100%',
             },
@@ -58,19 +51,21 @@ class CircularAudioWave {
                     type: 'line',
                     showSymbol: false,
                     lineStyle: {
-                        normal: {
-                            color: {
-                                colorStops: [
-                                    { offset: 0.7, color: 'red' },
-                                    { offset: 0.3, color: 'blue'}
-                                ],
-                            },
+                        color: {
+                            colorStops: [
+                                { offset: 0.7, color: 'red' },
+                                { offset: 0.3, color: 'blue'}
+                            ],
                         },
+                        // shadowColor: 'black',
+                        // shadowBlur: 30,
                     },
                     zlevel: 2,
                     data: Array.apply(null, { length: 361 }).map(Function.call, i => {
                         return [this.minChartValue, i];
-                    })
+                    }),
+                    silent: true,
+                    animation: false,
                 },
                 {
                     coordinateSystem: 'polar',
@@ -78,13 +73,15 @@ class CircularAudioWave {
                     type: 'line',
                     showSymbol: false,
                     lineStyle: {
-                        normal: {
-                            color: 'purple',
-                        },
+                        color: 'green',
+                        // shadowColor: 'black',
+                        // shadowBlur: 20,
                     },
                     data: Array.apply(null, { length: 361 }).map(Function.call, i => {
                         return [this.minChartValue, i];
-                    })
+                    }),
+                    silent: true,
+                    animation: false,
                 },
             ]
         };
