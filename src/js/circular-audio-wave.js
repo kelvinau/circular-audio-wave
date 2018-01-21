@@ -74,13 +74,6 @@ class CircularAudioWave {
                 },
                 {
                     coordinateSystem: 'polar',
-                    name: 'ripple',
-                    type: 'line',
-                    showSymbol: false,
-                    data: []
-                },
-                {
-                    coordinateSystem: 'polar',
                     name: 'maxbar',
                     type: 'line',
                     showSymbol: false,
@@ -93,26 +86,8 @@ class CircularAudioWave {
                         return [this.minChartValue, i];
                     })
                 },
-                // {
-                //     type: 'pie',
-                //     data: labelData,
-                //     radius: [100, 180],
-                //     zlevel: -2,
-                //     itemStyle: {
-                //         normal: {
-                //             color: '#22C3AA',
-                //             borderColor: 'white'
-                //         }
-                //     },
-                //     label: {
-                //         normal: {
-                //             position: 'inside'
-                //         }
-                //     }
-                // },
             ]
         };
-        this.chartOption = JSON.parse(JSON.stringify(this.defaultChartOption));
         // check if the default naming is enabled, if not use the chrome one.
         if (!window.AudioContext) {
             if (!window.webkitAudioContext) {
@@ -126,6 +101,138 @@ class CircularAudioWave {
             this.sourceNode.loop = !!this.opts.loop;
             this.analyser = this.context.createAnalyser();
         }
+
+
+        if (this.opts.mode === 'sunburst') {
+            let colors = ['#FFAE57', '#FF7853', '#EA5151', '#CC3F57', '#9A2555'];
+            let bgColor = '#2E2733';
+            
+            let data = [
+                {
+                    children: [ {
+                            children: []
+                    }],
+                }, 
+                {
+                    children: [{
+                        children: []
+                    }],
+                },
+            ];
+            for (let i = 0 ; i < 5; i++) {
+                data[0].children[0].children.push(
+                    {
+                        name: '-',
+                        children: [{
+                            name: ''
+                        }]
+                    },
+                );
+                data[1].children[0].children.push(
+                    {
+                        name: '-',
+                        children: [{
+                            name: ''
+                        }]
+                    },
+                );
+            }
+
+            // loop to the bottom children
+            data.forEach(level0 => {
+                level0.children.forEach(level1 => {
+                    level1.children.forEach((item) => {
+                        item.children[0].value = 1;
+                    })
+                })
+            });
+            
+            this.defaultChartOption = {
+                backgroundColor: bgColor,
+                color: colors,
+                series: [{
+                    type: 'sunburst',
+                    center: ['50%', '48%'],
+                    data: data,
+                    nodeClick: false,
+                    sort: function (a, b) {
+                        if (a.depth === 1) {
+                            return b.getValue() - a.getValue();
+                        }
+                        else {
+                            return a.dataIndex - b.dataIndex;
+                        }
+                    },
+                    itemStyle: {
+                        borderColor: bgColor,
+                        borderWidth: 2
+                    },
+                    levels: [{}, {
+                        r0: 0,
+                        r: 40,
+                    }, {
+                        r0: 40,
+                        r: 105
+                    }, {
+                        r0: 115,
+                        r: 140,
+                        itemStyle: {
+                            shadowBlur: 2,
+                            shadowColor: colors[2],
+                            color: 'transparent'
+                        },
+                        label: {
+                            rotate: 'tangential',
+                            fontSize: 10,
+                            color: colors[0]
+                        }
+                    }, {
+                        r0: 140,
+                        r: 145,
+                        itemStyle: {
+                            shadowBlur: 80,
+                            shadowColor: colors[0],
+                            color: colors[0]
+                        },
+                        label: {
+                            position: 'outside',
+                            textShadowBlur: 5,
+                            textShadowColor: '#333',
+                            backgroundColor: colors[0],
+                        },
+                    }]
+                }]
+            };
+        }
+        
+
+        this.chartOption = JSON.parse(JSON.stringify(this.defaultChartOption));
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
     loadAudio(filePath) {
         console.log(filePath);
@@ -150,7 +257,7 @@ class CircularAudioWave {
         });
     }
     generateWave() {
-        this.chart.setOption(this.chartOption);
+        this.chart.setOption(this.chartOption, true);
     }
     play() {
         if (this.sourceNode && this.sourceNode.buffer) {
@@ -214,10 +321,13 @@ class CircularAudioWave {
                 this.lastMaxR -= 4;
             }
 
-            this.chartOption.series[2].data = Array.apply(null, { length: 361 }).map(Function.call, (i) => {
-                return [this.lastMaxR, i];
-            });
-            this.chart.setOption(this.chartOption);
+            // maxbar
+            if (this.opts.mode !== 'sunburst') {
+                this.chartOption.series[1].data = Array.apply(null, { length: 361 }).map(Function.call, (i) => {
+                    return [this.lastMaxR, i];
+                });
+            }
+            this.chart.setOption(this.chartOption, true);
         }
     }
     _generateWaveData(data) {
@@ -233,6 +343,24 @@ class CircularAudioWave {
             waveData.push([r, i]);
         }
         waveData.push([waveData[0][0], 360]);
+
+        if (this.opts.mode === 'sunburst') {
+            waveData = JSON.parse(JSON.stringify(this.chartOption.series[0].data));;
+            let index = 0;
+            waveData.forEach(level0 => {
+                level0.children.forEach(level1 => {
+                    level1.children.forEach((item) => {
+                        let freq = data[index];
+                        var r = (((freq - 0) * (20 - 0)) / (255 - 0)) + 0;
+
+                        item.children[0].name = Array.apply(null, { length: r }).map(Function.call, i => {
+                            return '';
+                        }).join(' ');
+                        index++;
+                    })
+                })
+            });
+        }
         return { maxR: maxR, data: waveData };
     };
 }
