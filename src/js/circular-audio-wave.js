@@ -85,23 +85,6 @@ class CircularAudioWave {
                     silent: true,
                     hoverAnimation: false,
                 },
-                // {
-                //     coordinateSystem: 'polar',
-                //     name: 'interior',
-                //     type: 'line',
-                //     showSymbol: false,
-                //     lineStyle: {
-                //         color: '#4CAF50',
-                //         width: 10,
-                //         shadowColor: 'green',
-                //         shadowBlur: 10,
-                //     },
-                //     data: Array.apply(null, { length: 361 }).map(Function.call, i => {
-                //         return [this.minChartValue - 5, i];
-                //     }),
-                //     silent: true,
-                //     hoverAnimation: false,
-                // },
                 {
                     coordinateSystem: 'polar',
                     name: 'interior',
@@ -110,22 +93,22 @@ class CircularAudioWave {
                     data: [0],
                     symbolSize: 100,
                     rippleEffect: {
-                        period: 20,
-                        scale: 2,
+                        period: 3,
+                        scale: 3,
                     },
                     itemStyle: {
                         color: {
                             type: 'radial',
                             colorStops: [{
-                                offset: 0, color: 'white'
+                                 offset: 0, color: '#87b9ca'
                             }, {
-                                offset: 1, color: '#87b9ca'
-
+                                offset: 1, color: 'white'
                             }],
                         },
                     },
                     silent: true,
                     hoverAnimation: false,
+                    animation: false,
                 },
             ]
         };
@@ -355,10 +338,12 @@ class CircularAudioWave {
                 this.chartOption.series[1].data = Array.apply(null, { length: 361 }).map(Function.call, (i) => {
                     return [this.lastMaxR, i];
                 });
-                // if (this.tick === 50) {
-                //     this.chartOption.series[2].rippleEffect.period *= 2;
-                //     this.chartOption.series[2].rippleEffect.scale *= 2;
-                // }
+
+                
+                // TODO: Tempo detection
+                if (this.tick === 100) {
+                    this.chartOption.series[2].rippleEffect.period = 1;
+                }
             }
             this.chart.setOption(this.chartOption, true);
             this.tick++;
