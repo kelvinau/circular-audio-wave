@@ -75,8 +75,8 @@ class CircularAudioWave {
                     type: 'line',
                     showSymbol: false,
                     lineStyle: {
-                        color: 'green',
-                        shadowColor: 'green',
+                        color: '#87b9ca',
+                        shadowColor: '#87b9ca',
                         shadowBlur: 10,
                     },
                     data: Array.apply(null, { length: 361 }).map(Function.call, i => {
@@ -93,7 +93,7 @@ class CircularAudioWave {
                     data: [0],
                     symbolSize: 100,
                     rippleEffect: {
-                        period: 3,
+                        period: 3.5,
                         scale: 3,
                     },
                     itemStyle: {
@@ -113,15 +113,17 @@ class CircularAudioWave {
             ]
         };
         // check if the default naming is enabled, if not use the chrome one.
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        window.OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+
         if (!window.AudioContext) {
-            if (!window.webkitAudioContext) {
-                alert('Your browser does not support AudioContext');
-            }
-            window.AudioContext = window.webkitAudioContext;
+            alert('Your browser does not support Web Audio API');
         }
         else {
             this.context = new AudioContext();
+            this.offlineContext = new OfflineAudioContext(2, 30 * 44100, 44100);
             this.sourceNode = this.context.createBufferSource();
+            this.offlineSource = this.offlineContext.createBufferSource();
             this.sourceNode.loop = !!this.opts.loop;
             this.analyser = this.context.createAnalyser();
         }
@@ -234,21 +236,29 @@ class CircularAudioWave {
         console.log(filePath);
         this.filePath = filePath;
         this._setupAudioNodes();
+        this._setupOfflineContext();
         var request = new XMLHttpRequest();
         request.open('GET', filePath, true);
         request.responseType = 'arraybuffer';
         request.send();
         return new Promise((resolve, reject) => {
             request.onload = () => {
-                this.context.decodeAudioData(
-                    request.response, 
-                    buffer => {
-                        this.sourceNode.buffer = buffer;
-                        this._init();
-                        resolve();
-                    },
-                    e => console.log(e)
-                );
+                // Preprocess buffer for bpm
+                this.offlineContext.decodeAudioData(request.response, buffer => {
+                    this.sourceNode.buffer = buffer;
+                    this.offlineSource.buffer = buffer;
+                    this.offlineSource.start(0);
+                    this.offlineContext.startRendering();
+                });
+
+                this.offlineContext.oncomplete = e => {
+                    let buffer = e.renderedBuffer;
+                    this.bpm = this._getBPM([buffer.getChannelData(0), buffer.getChannelData(1)]);            
+                    
+                    this._init();
+                    resolve();
+                };
+
             };
         });
     }
@@ -259,11 +269,10 @@ class CircularAudioWave {
     presetOption() {
         if (this.opts.mode !== 'sunburst') {
             this.chartOption.series[0].animation = false;
+            this.chartOption.series[2].rippleEffect.period = 150 / this.bpm;
         }
     }
-    riplpe() {
-        //this.chart.
-    }
+
     play() {
         if (this.sourceNode && this.sourceNode.buffer) {
             this.playing = true;
@@ -294,12 +303,15 @@ class CircularAudioWave {
             this.playing = false;
             this.context.close();
             this.sourceNode.buffer = null;
+            this.offlineSource.buffer = null;
             this.reset();
 
             this.context = new AudioContext();
+            this.offlineContext = new OfflineAudioContext(2, 30 * 44100, 44100);
             this.sourceNode = this.context.createBufferSource();
+            this.offlineSource = this.offlineContext.createBufferSource();
             this.analyser = this.context.createAnalyser();
-            this.loadAudio(this.filePath)
+            this.loadAudio(this.filePath);
         }
     }
     _setupAudioNodes() {
@@ -311,6 +323,25 @@ class CircularAudioWave {
         this.sourceNode.connect(this.context.destination);
         this.sourceNode.onended = this.onended.bind(this);
     }
+
+    _setupOfflineContext() {
+        // Beats generally occur around the 100 to 150 hz range.
+        let lowpass = this.offlineContext.createBiquadFilter();
+        lowpass.type = "lowpass";
+        lowpass.settar
+        lowpass.frequency.setValueAtTime(150, 0);
+        lowpass.Q.setValueAtTime(1, 0);
+
+        this.offlineSource.connect(lowpass);
+
+        let highpass = this.offlineContext.createBiquadFilter();
+        highpass.type = "highpass";
+        highpass.frequency.setValueAtTime(100, 0);
+        highpass.Q.setValueAtTime(1, 0);
+        lowpass.connect(highpass);
+        highpass.connect(this.offlineContext.destination);
+    }
+    
     _drawAnaimation()  {
         let freqData = new Uint8Array(this.analyser.frequencyBinCount);
         this.analyser.getByteFrequencyData(freqData);
@@ -338,12 +369,6 @@ class CircularAudioWave {
                 this.chartOption.series[1].data = Array.apply(null, { length: 361 }).map(Function.call, (i) => {
                     return [this.lastMaxR, i];
                 });
-
-                
-                // TODO: Tempo detection
-                if (this.tick === 100) {
-                    this.chartOption.series[2].rippleEffect.period = 1;
-                }
             }
             this.chart.setOption(this.chartOption, true);
             this.tick++;
@@ -352,25 +377,26 @@ class CircularAudioWave {
     _generateWaveData(data) {
         let waveData = [];
         let maxR = 0;
-        for (let i = 0; i <= 360; i++) {
-            // (((OldValue - OldMin) * (NewMax - NewMin)) / (OldMax - OldMin)) + NewMin
-            let freq = data[i];
-            var r = (((freq - 0) * (this.maxChartValue - this.minChartValue)) / (255 - 0)) + this.minChartValue;
-            if (r > maxR) {
-                maxR = r;
+        if (this.opts.mode !== 'sunburst') {
+            for (let i = 0; i <= 360; i++) {
+                // (((OldValue - OldMin) * (NewMax - NewMin)) / (OldMax - OldMin)) + NewMin
+                let freq = data[i];
+                var r = (((freq - 0) * (this.maxChartValue - this.minChartValue)) / (255 - 0)) + this.minChartValue;
+                if (r > maxR) {
+                    maxR = r;
+                }
+                waveData.push([r, i]);
             }
-            waveData.push([r, i]);
+            waveData.push([waveData[0][0], 360]);
         }
-        waveData.push([waveData[0][0], 360]);
-
-        if (this.opts.mode === 'sunburst') {
+        else {
             waveData = JSON.parse(JSON.stringify(this.chartOption.series[0].data));;
             let index = 0;
             waveData.forEach(level0 => {
                 level0.children.forEach(level1 => {
-                    level1.children.forEach((item) => {
+                    level1.children.forEach(item => {
                         let freq = data[index];
-                        var r = (((freq - 0) * (20 - 0)) / (255 - 0)) + 0;
+                        var r = (((freq - 0) * (40 - 0)) / (255 - 0)) + 0;
 
                         item.children[0].name = Array.apply(null, { length: r }).map(Function.call, i => {
                             return '';
@@ -382,7 +408,69 @@ class CircularAudioWave {
         }
         return { maxR: maxR, data: waveData };
     };
+
     
+    _getBPM(data) {
+        let partSize = 22050,
+            parts = data[0].length / partSize,
+            peaks = [];
+
+        for (let i = 0; i < parts; i++) {
+            let max = 0;
+            for (let j = i * partSize; j < (i + 1) * partSize; j++) {
+                let volume = Math.max(Math.abs(data[0][j]), Math.abs(data[1][j]));
+                if (!max || (volume > max.volume)) {
+                    max = {
+                        position: j,
+                        volume: volume
+                    };
+                }
+            }
+            peaks.push(max);
+        }
+
+        peaks.sort((a, b) => {
+            return b.volume - a.volume;
+        });
+        peaks = peaks.splice(0, peaks.length * 0.5);
+        peaks.sort((a, b) => {
+            return a.position - b.position;
+        });
+
+        let groups = [];
+        peaks.forEach((peak, index) => {
+            for (let i = 1; (index + i) < peaks.length && i < 10; i++) {
+                let group = {
+                    bpm: (60 * 44100) / (peaks[index + i].position - peak.position),
+                    count: 1
+                };
+
+                while (group.bpm < 90) {
+                    group.bpm *= 2;
+                }
+
+                while (group.bpm > 180) {
+                    group.bpm /= 2;
+                }
+
+                group.bpm = Math.round(group.bpm);
+
+                if (!(groups.some(interval => {
+                    return (interval.bpm === group.bpm ? interval.count++ : 0);
+                }))) {
+                    groups.push(group);
+                }
+            }
+        });
+
+        let bpm = groups.sort((intA, intB) => {
+            return intB.count - intA.count;
+        })[0].bpm;
+        console.log('bpm:', bpm);
+
+        return bpm;
+    }
+
     _debounce(func, wait, immediate) {
         var timeout;
         return function() {

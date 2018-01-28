@@ -1,0 +1,15 @@
+<html>
+
+<head></head>
+
+<body>
+    <button onclick="wave.play()">Play</button>
+    <div id="chart-container" style="width: 100%; height: 100%;"></div>
+    <script src="../dist/circular-audio-wave.min.js"></script>
+    <script>
+        let wave = new CircularAudioWave(document.getElementById('chart-container'));
+        wave.loadAudio('audio/audio1.mp3');
+    </script>
+</body>
+
+</html>
