@@ -16,10 +16,13 @@
   },
   "homepage": "https://github.com/kelvinau/circular-audio-wave#readme",
   "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-preset-env": "^1.7.0",
     "gulp": "^3.9.1",
+    "gulp-babel": "^7.0.1",
     "gulp-concat": "^2.6.1",
+    "gulp-merge": "^0.1.1",
     "gulp-uglify": "^3.0.0",
-    "gulp-uglify-es": "^1.0.0",
-    "pump": "^2.0.0"
+    "pump": "^3.0.0"
   }
 }
