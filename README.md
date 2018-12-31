@@ -1,5 +1,5 @@
 # Circular Audio Wave
-<img alt="Circular Wave" src="http://kelvinau.net/demo/circular-audio-wave/circular-wave.gif" width="50%"/><img alt="Sunburst" src="http://kelvinau.net/demo/circular-audio-wave/sunburst.gif" width="50%"/>
+<img alt="Circular Wave" src="http://demo.kelvinau.net/circular-audio-wave/circular-wave.gif" width="50%"/><img alt="Sunburst" src="http://demo.kelvinau.net/circular-audio-wave/sunburst.gif" width="50%"/>
 
 **Live Demo**  
 Circular Wave: https://demo.kelvinau.net/circular-audio-wave/circular-wave.html 
