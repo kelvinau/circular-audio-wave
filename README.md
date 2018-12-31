@@ -2,7 +2,7 @@
 <img alt="Circular Wave" src="http://demo.kelvinau.net/circular-audio-wave/circular-wave.gif" width="50%"/><img alt="Sunburst" src="http://demo.kelvinau.net/circular-audio-wave/sunburst.gif" width="50%"/>
 
 **Live Demo**  
-Circular Wave: https://demo.kelvinau.net/circular-audio-wave/circular-wave.html 
+Circular Wave: https://demo.kelvinau.net/circular-audio-wave/circular-wave.html  
 Sunburst: https://demo.kelvinau.net/circular-audio-wave/sunburst.html
 
 ## Introduction
