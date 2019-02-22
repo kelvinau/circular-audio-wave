@@ -2,14 +2,11 @@
   "name": "circular-audio-wave",
   "version": "1.0.0",
   "description": "A JS library to create circular audio wave using ECharts",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kelvinau/circular-audio-wave.git"
+    "url": "https://github.com/kelvinau/circular-audio-wave.git"
   },
-  "author": "",
+  "author": "Kelvin Au",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/kelvinau/circular-audio-wave/issues"
