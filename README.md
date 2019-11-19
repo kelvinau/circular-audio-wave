@@ -1,9 +1,9 @@
 # Circular Audio Wave
-<img alt="Circular Wave" src="http://demo.kelvinau.net/circular-audio-wave/circular-wave.gif" width="50%"/><img alt="Sunburst" src="http://demo.kelvinau.net/circular-audio-wave/sunburst.gif" width="50%"/>
+<img alt="Circular Wave" src="https://kelvinau.github.io/circular-audio-wave/demo/circular-wave.gif" width="50%"/><img alt="Sunburst" src="https://kelvinau.github.io/circular-audio-wave/demo/sunburst.gif?1" width="50%"/>
 
 **Live Demo**  
-Circular Wave: https://demo.kelvinau.net/circular-audio-wave/circular-wave.html  
-Sunburst: https://demo.kelvinau.net/circular-audio-wave/sunburst.html
+Circular Wave: https://kelvinau.github.io/circular-audio-wave/demo/circular-wave.html  
+Sunburst: https://kelvinau.github.io/circular-audio-wave/demo/sunburst.html
 
 ## Introduction
 `CircularAudioWave` is a JS library for audio visualization in circular audio wave, based on frequencies and BPM (Beats Per Minute). It uses [ECharts](https://github.com/apache/incubator-echarts) for the rendering, which is combined into `dist/circular-audio-wave.min.js`.
