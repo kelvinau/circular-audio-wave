@@ -1,6 +1,6 @@
 {
   "name": "circular-audio-wave",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A JS library to create circular audio wave using ECharts",
   "repository": {
     "type": "git",
