@@ -10,6 +10,16 @@ Sunburst: https://kelvinau.github.io/circular-audio-wave/demo/sunburst.html
 
 *This library works only on browsers that supports Web Audio API.
 
+## Installation
+1\. NPM
+```
+npm install circular-audio-wave
+```
+
+and import `circular-audio-wave.min.js` from `dist`
+
+2\. Download `circular-audio-wave.min.js` directly from [github](https://raw.githubusercontent.com/kelvinau/circular-audio-wave/master/dist/circular-audio-wave.min.js)
+
 ## Usage
 Class `CircularAudioWave(elem, opts={})` where `elem` is an DOM element object and `opts` provides configuration.  
 Configuration consists of:  
